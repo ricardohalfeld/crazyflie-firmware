@@ -111,7 +111,22 @@ static void mrTask(void *param)
         rangeSet(rangeUp, mrGetMeasurementAndRestart(&devUp)/1000.0f);
         rangeSet(rangeLeft, mrGetMeasurementAndRestart(&devLeft)/1000.0f);
         rangeSet(rangeRight, mrGetMeasurementAndRestart(&devRight)/1000.0f);
-    }
+
+        adHocVar = ranges[rangeUp] // Is this the right variable?
+
+        // check if range is feasible and push into the kalman filter
+        // the sensor should not be able to measure >5 [m], and outliers typically
+        // occur as >8 [m] measurements
+        if (getStateEstimator() == kalmanEstimator &&
+            adHocVar < 5000) 
+            {
+            // Form measurement
+            tofMeasurement_t ceilData;
+            ceilData.timestamp = xTaskGetTickCount();
+            ceilData.distance = 2.5f - adHocVar;    // Ceiling absolute position - measurement
+            ceilData.stdDev = expStdA * (1.0f  + expf( expCoeff * ( adHocVar - expPointA)));
+            estimatorEnqueueAbsoluteHeight(&ceilData);
+            }
 }
 
 static void mrInit()
