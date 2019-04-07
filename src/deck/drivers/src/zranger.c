@@ -108,7 +108,8 @@ void zRangerTask(void* arg)
     // the sensor should not be able to measure >3 [m], and outliers typically
     // occur as >8 [m] measurements
     if (getStateEstimator() == kalmanEstimator &&
-        range_last < RANGE_OUTLIER_LIMIT) {
+        range_last < RANGE_OUTLIER_LIMIT) &&
+        false { // Placeholder "false" for parameter check
       // Form measurement
       tofMeasurement_t tofData;
       tofData.timestamp = xTaskGetTickCount();
