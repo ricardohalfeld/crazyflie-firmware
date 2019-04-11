@@ -137,11 +137,11 @@ static void mrTask(void *param)
             adHocVar < 5000)    //hard coded outlier limit
             {
             // Form measurement
-        	heightMeasurement_t ceilData;
+        	tofMeasurement_t ceilData;
             ceilData.timestamp = xTaskGetTickCount();
-            ceilData.height = 2.5f - adHocVar;    // Ceiling absolute position - measurement
+            ceilData.distance = 2.5f - adHocVar;    // Ceiling absolute position - measurement
             ceilData.stdDev = expStdA * (1.0f  + expf( expCoeff * ( adHocVar - expPointA)));
-            estimatorEnqueueAbsoluteHeight(&ceilData);
+            estimatorEnqueueTOF(&ceilData);
             }
     }
 }
