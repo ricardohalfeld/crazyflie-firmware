@@ -42,6 +42,22 @@
 
 #include <stdlib.h>
 
+#include "stabilizer_types.h"
+
+#include "estimator.h"
+#include "cf_math.h"
+
+// Measurement noise model
+static float expPointA = 2.5f;
+static float expStdA = 0.0025f; // STD at elevation expPointA [m]
+static float expPointB = 4.0f;
+static float expStdB = 0.2f;    // STD at elevation expPointB [m]
+static float expCoeff;
+
+#define RANGE_OUTLIER_LIMIT 5000 // the measured range is in [mm]
+
+static float adHocVar;
+
 static bool isInit = false;
 static bool isTested = false;
 static bool isPassed = false;
@@ -106,11 +122,27 @@ static void mrTask(void *param)
     {
         vTaskDelayUntil(&lastWakeTime, M2T(100));
 
+        adHocVar = mrGetMeasurementAndRestart(&devUp)/1000.0f; // Is this the right variable?
+        
         rangeSet(rangeFront, mrGetMeasurementAndRestart(&devFront)/1000.0f);
         rangeSet(rangeBack, mrGetMeasurementAndRestart(&devBack)/1000.0f);
-        rangeSet(rangeUp, mrGetMeasurementAndRestart(&devUp)/1000.0f);
+        rangeSet(rangeUp, adHocVar);
         rangeSet(rangeLeft, mrGetMeasurementAndRestart(&devLeft)/1000.0f);
         rangeSet(rangeRight, mrGetMeasurementAndRestart(&devRight)/1000.0f);
+
+        // check if range is feasible and push into the kalman filter
+        // the sensor should not be able to measure >5 [m], and outliers typically
+        // occur as >8 [m] measurements
+        if (getStateEstimator() == kalmanEstimator &&
+            adHocVar < 5000)    //hard coded outlier limit
+            {
+            // Form measurement
+        	heightMeasurement_t ceilData;
+            ceilData.timestamp = xTaskGetTickCount();
+            ceilData.height = 2.5f - adHocVar;    // Ceiling absolute position - measurement
+            ceilData.stdDev = expStdA * (1.0f  + expf( expCoeff * ( adHocVar - expPointA)));
+            estimatorEnqueueAbsoluteHeight(&ceilData);
+            }
     }
 }
 
@@ -139,6 +171,9 @@ static void mrInit()
 
     xTaskCreate(mrTask, MULTIRANGER_TASK_NAME, MULTIRANGER_TASK_STACKSIZE, NULL,
         MULTIRANGER_TASK_PRI, NULL);
+
+    // pre-compute constant in the measurement noise model for kalman
+      expCoeff = logf(expStdB / expStdA) / (expPointB - expPointA);
 }
 
 static bool mrTest()

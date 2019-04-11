@@ -27,6 +27,8 @@
 
 #pragma once
 
+// static uint16_t ranges[];
+
 typedef enum {
     rangeFront=0,
     rangeBack,
